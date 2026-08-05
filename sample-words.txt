@@ -1,0 +1,17 @@
+apple
+banana
+orange
+grape
+lemon
+
+cat
+dog
+bird
+fish
+horse
+
+happy
+sunny
+bright
+quiet
+brave
