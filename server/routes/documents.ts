@@ -6,6 +6,7 @@ import { v4 as uuid } from 'uuid'
 import { db, uploadsDir } from '../db.js'
 import { requireAuth, getUser } from '../auth.js'
 import { extractPagesFromBuffer } from '../parseDocument.js'
+import { scheduleDatabasePush } from '../githubSync.js'
 
 export const documentsRouter = Router()
 
@@ -121,6 +122,7 @@ documentsRouter.post('/', (req, res) => {
         })
       })
       tx()
+      scheduleDatabasePush()
 
       res.json({
         document: {
@@ -152,5 +154,6 @@ documentsRouter.delete('/:id', (req, res) => {
     res.status(404).json({ error: '文档不存在' })
     return
   }
+  scheduleDatabasePush()
   res.json({ ok: true })
 })

@@ -3,15 +3,17 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
-    "dev": "vite",
-    "dev:web": "vite",
-    "dev:full": "concurrently -n server,web -c teal,cyan \"npm run dev:server\" \"vite --base /\"",
+    "dev": "concurrently -n server,web -c teal,cyan \"npm run dev:server\" \"npm run dev:web\"",
+    "dev:web": "vite --base /",
     "dev:server": "tsx watch server/index.ts",
     "build": "tsc -b && vite build",
     "start": "tsx server/index.ts",
     "preview": "vite preview",
-    "deploy": "npm run build && npx gh-pages -d dist"
+    "deploy:pages": "VITE_ROUTER=hash VITE_BASE=/auto-dictation/ npm run build && npx gh-pages -d dist"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

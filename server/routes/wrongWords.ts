@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { db } from '../db.js'
 import { requireAuth, getUser } from '../auth.js'
+import { scheduleDatabasePush } from '../githubSync.js'
 
 export const wrongWordsRouter = Router()
 wrongWordsRouter.use(requireAuth)
@@ -30,5 +31,6 @@ wrongWordsRouter.delete('/:id', (req, res) => {
     res.status(404).json({ error: '记录不存在' })
     return
   }
+  scheduleDatabasePush()
   res.json({ ok: true })
 })

@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs'
 import { v4 as uuid } from 'uuid'
 import { db } from '../db.js'
 import { requireAuth, signToken, getUser } from '../auth.js'
+import { scheduleDatabasePush } from '../githubSync.js'
 
 export const authRouter = Router()
 
@@ -41,6 +42,7 @@ authRouter.post('/register', (req, res) => {
   )
 
   const user = { id, username }
+  scheduleDatabasePush()
   res.json({ token: signToken(user), user })
 })
 

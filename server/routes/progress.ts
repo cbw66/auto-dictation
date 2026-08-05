@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { v4 as uuid } from 'uuid'
 import { db } from '../db.js'
 import { requireAuth, getUser } from '../auth.js'
+import { scheduleDatabasePush } from '../githubSync.js'
 
 export const progressRouter = Router()
 progressRouter.use(requireAuth)
@@ -98,6 +99,7 @@ progressRouter.post('/grade', (req, res) => {
     }
   })
   tx()
+  scheduleDatabasePush()
 
   res.json({
     correctCount,

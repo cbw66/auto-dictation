@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: auto-dictation
+    runtime: node
+    plan: free
+    buildCommand: npm ci && VITE_BASE=/ VITE_ROUTER=browser npm run build
+    startCommand: npx tsx server/index.ts
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: DATA_GITHUB_REPO
+        value: cbw66/auto-dictation
+      - key: DATA_GITHUB_BRANCH
+        value: data
+      - key: GITHUB_TOKEN
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
