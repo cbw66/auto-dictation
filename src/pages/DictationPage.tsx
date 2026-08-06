@@ -236,15 +236,33 @@ export function DictationPage() {
     const count = answers.length
     const columns = count > 72 ? 4 : count > 40 ? 3 : 2
     const rows = Math.ceil(count / columns)
+
+    function escapeHtml(value: string) {
+      return value
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+    }
+
     const tableRows = Array.from({ length: rows }, (_, row) => {
       const cells = Array.from({ length: columns }, (_, column) => {
         const answerIndex = column * rows + row
         if (answerIndex >= count) return '<td></td>'
-        const answer = (answers[answerIndex] || '（空）')
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
-        return `<td><span>${answerIndex + 1}.</span> ${answer}</td>`
+
+        const writtenRaw = answers[answerIndex]?.trim() || '（空）'
+        const written = escapeHtml(writtenRaw)
+        const result = results?.[answerIndex]
+
+        let body: string
+        if (result && !result.correct) {
+          const expected = escapeHtml(result.expected)
+          // 红字书写答案 + 括号内正确拼写，与页面「✗ expected」对照一致
+          body = `<span style="color:#c00;font-weight:bold">${written}</span> <span style="color:#c00">（${expected}）</span>`
+        } else {
+          body = written
+        }
+
+        return `<td><span>${answerIndex + 1}.</span> ${body}</td>`
       }).join('')
       return `<tr>${cells}</tr>`
     }).join('')
@@ -257,10 +275,10 @@ h1{text-align:center;font-size:16pt;margin:0 0 3mm}
 p{text-align:center;font-size:9pt;color:#666;margin:0 0 4mm}
 table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:${count > 72 ? 8 : 10}pt}
 td{border-bottom:1px solid #ddd;padding:1.5mm 2mm;white-space:nowrap;overflow:hidden}
-td span{color:#777;display:inline-block;width:7mm}
+td span.num,td > span:first-child{color:#777;display:inline-block;width:7mm}
 </style></head><body>
 <h1>${safeTitle} · 第 ${pageIdx + 1} 页听写</h1>
-<p>共 ${count} 项${summary ? ` · 正确率 ${summary.accuracy}%` : ''}</p>
+<p>共 ${count} 项${summary ? ` · 正确率 ${summary.accuracy}%` : ''}${results ? ' · 红色为错词' : ''}</p>
 <table>${tableRows}</table>
 </body></html>`
     const blob = new Blob(['\ufeff', html], { type: 'application/msword;charset=utf-8' })
