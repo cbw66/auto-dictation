@@ -236,6 +236,7 @@ export function DictationPage() {
     const count = answers.length
     const columns = count > 72 ? 4 : count > 40 ? 3 : 2
     const rows = Math.ceil(count / columns)
+    const fontSize = count > 72 ? 8 : 10
 
     function escapeHtml(value: string) {
       return value
@@ -247,41 +248,91 @@ export function DictationPage() {
     const tableRows = Array.from({ length: rows }, (_, row) => {
       const cells = Array.from({ length: columns }, (_, column) => {
         const answerIndex = column * rows + row
-        if (answerIndex >= count) return '<td></td>'
+        if (answerIndex >= count) {
+          return '<td style="border-bottom:1px solid #cccccc;padding:3pt 4pt;"></td>'
+        }
 
         const writtenRaw = answers[answerIndex]?.trim() || '（空）'
         const written = escapeHtml(writtenRaw)
         const result = results?.[answerIndex]
+        const num = `<font color="#666666">${answerIndex + 1}.</font>`
 
         let body: string
         if (result && !result.correct) {
           const expected = escapeHtml(result.expected)
-          // 红字书写答案 + 括号内正确拼写，与页面「✗ expected」对照一致
-          body = `<span style="color:#c00;font-weight:bold">${written}</span> <span style="color:#c00">（${expected}）</span>`
+          // <font color> 比 span+CSS 在 Mac Word / Pages 里更稳
+          body = `<font color="#CC0000"><b>${written}</b>（${expected}）</font>`
         } else {
-          body = written
+          body = `<font color="#000000">${written}</font>`
         }
 
-        return `<td><span>${answerIndex + 1}.</span> ${body}</td>`
+        return `<td style="border-bottom:1px solid #cccccc;padding:3pt 4pt;color:#000000;background-color:#ffffff;">${num} ${body}</td>`
       }).join('')
       return `<tr>${cells}</tr>`
     }).join('')
 
-    const html = `<!doctype html>
-<html><head><meta charset="utf-8"><style>
-@page{size:A4;margin:12mm}
-body{font-family:Calibri,Arial,sans-serif;margin:0;color:#111}
-h1{text-align:center;font-size:16pt;margin:0 0 3mm}
-p{text-align:center;font-size:9pt;color:#666;margin:0 0 4mm}
-table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:${count > 72 ? 8 : 10}pt}
-td{border-bottom:1px solid #ddd;padding:1.5mm 2mm;white-space:nowrap;overflow:hidden}
-td span.num,td > span:first-child{color:#777;display:inline-block;width:7mm}
-</style></head><body>
-<h1>${safeTitle} · 第 ${pageIdx + 1} 页听写</h1>
-<p>共 ${count} 项${summary ? ` · 正确率 ${summary.accuracy}%` : ''}${results ? ' · 红色为错词' : ''}</p>
-<table>${tableRows}</table>
-</body></html>`
-    const blob = new Blob(['\ufeff', html], { type: 'application/msword;charset=utf-8' })
+    // Word HTML：显式白底黑字 + Office xmlns，避免 Mac 上白字/被裁切看不见
+    const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office"
+xmlns:w="urn:schemas-microsoft-com:office:word"
+xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name="ProgId" content="Word.Document">
+<meta name="Generator" content="EchoWrite">
+<!--[if gte mso 9]><xml>
+ <w:WordDocument>
+  <w:View>Print</w:View>
+  <w:Zoom>100</w:Zoom>
+  <w:DoNotOptimizeForBrowser/>
+ </w:WordDocument>
+</xml><![endif]-->
+<style>
+/* Word / Pages 保守样式：不用 overflow:hidden、不用深色主题色 */
+@page { size: A4; margin: 12mm; }
+body {
+  background: #ffffff !important;
+  color: #000000 !important;
+  font-family: Arial, Helvetica, "Microsoft YaHei", sans-serif;
+  font-size: ${fontSize}pt;
+  margin: 0;
+}
+h1 {
+  text-align: center;
+  font-size: 16pt;
+  color: #000000 !important;
+  background: #ffffff !important;
+  margin: 0 0 8pt 0;
+}
+p.meta {
+  text-align: center;
+  font-size: 9pt;
+  color: #333333 !important;
+  margin: 0 0 10pt 0;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  background: #ffffff !important;
+  color: #000000 !important;
+}
+td {
+  vertical-align: top;
+  color: #000000 !important;
+  background: #ffffff !important;
+}
+</style>
+</head>
+<body bgcolor="#ffffff" style="background-color:#ffffff;color:#000000;">
+<h1>${escapeHtml(safeTitle)} · 第 ${pageIdx + 1} 页听写</h1>
+<p class="meta">共 ${count} 项${summary ? ` · 正确率 ${summary.accuracy}%` : ''}${results ? ' · 红色为错词' : ''}</p>
+<table border="0" cellspacing="0" cellpadding="0">${tableRows}</table>
+</body>
+</html>`
+
+    const blob = new Blob(['\ufeff', html], {
+      type: 'application/msword;charset=utf-8',
+    })
     const url = URL.createObjectURL(blob)
     const anchor = document.createElement('a')
     anchor.href = url
