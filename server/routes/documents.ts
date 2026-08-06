@@ -7,13 +7,15 @@ import { db, uploadsDir } from '../db.js'
 import { requireAuth, getUser } from '../auth.js'
 import { extractPagesFromBuffer } from '../parseDocument.js'
 import { scheduleDatabasePush } from '../githubSync.js'
+import { decodeUploadFilename } from '../filename.js'
 
 export const documentsRouter = Router()
 
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, uploadsDir),
   filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase()
+    const original = decodeUploadFilename(file.originalname)
+    const ext = path.extname(original).toLowerCase()
     cb(null, `${uuid()}${ext}`)
   },
 })
@@ -22,7 +24,8 @@ const upload = multer({
   storage,
   limits: { fileSize: 25 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    const ok = /\.(pdf|docx|doc|txt)$/i.test(file.originalname)
+    const original = decodeUploadFilename(file.originalname)
+    const ok = /\.(pdf|docx|doc|txt)$/i.test(original)
     cb(ok ? null : new Error('仅支持 PDF / Word / TXT'), ok)
   },
 })
@@ -39,9 +42,22 @@ documentsRouter.get('/', (req, res) => {
        WHERE d.user_id = ?
        ORDER BY d.created_at DESC`,
     )
-    .all(user.id)
+    .all(user.id) as Array<{
+    id: string
+    title: string
+    original_name: string
+    page_count: number
+    created_at: string
+    completed_pages: number
+  }>
 
-  res.json({ documents: rows })
+  res.json({
+    documents: rows.map((d) => ({
+      ...d,
+      title: decodeUploadFilename(d.title),
+      original_name: decodeUploadFilename(d.original_name),
+    })),
+  })
 })
 
 documentsRouter.get('/:id', (req, res) => {
@@ -71,8 +87,8 @@ documentsRouter.get('/:id', (req, res) => {
   res.json({
     document: {
       id: row.id,
-      title: row.title,
-      originalName: row.original_name,
+      title: decodeUploadFilename(row.title),
+      originalName: decodeUploadFilename(row.original_name),
       pageCount: row.page_count,
       pages: JSON.parse(row.pages_json) as string[][],
       createdAt: row.created_at,
@@ -93,9 +109,10 @@ documentsRouter.post('/', (req, res) => {
     }
 
     const user = getUser(req)
+    const originalName = decodeUploadFilename(req.file.originalname)
     try {
       const buffer = fs.readFileSync(req.file.path)
-      const pages = await extractPagesFromBuffer(buffer, req.file.originalname)
+      const pages = await extractPagesFromBuffer(buffer, originalName)
       if (!pages.length || pages.every((p) => p.length === 0)) {
         fs.unlinkSync(req.file.path)
         res.status(400).json({ error: '未能从文件中提取到英文单词' })
@@ -105,12 +122,12 @@ documentsRouter.post('/', (req, res) => {
       const id = uuid()
       const title =
         String(req.body?.title || '').trim() ||
-        path.basename(req.file.originalname, path.extname(req.file.originalname))
+        path.basename(originalName, path.extname(originalName))
 
       db.prepare(
         `INSERT INTO documents (id, user_id, title, original_name, page_count, pages_json)
          VALUES (?, ?, ?, ?, ?, ?)`,
-      ).run(id, user.id, title, req.file.originalname, pages.length, JSON.stringify(pages))
+      ).run(id, user.id, title, originalName, pages.length, JSON.stringify(pages))
 
       const insertProgress = db.prepare(
         `INSERT INTO page_progress (id, user_id, document_id, page_index, status, word_count)
@@ -128,7 +145,7 @@ documentsRouter.post('/', (req, res) => {
         document: {
           id,
           title,
-          originalName: req.file.originalname,
+          originalName,
           pageCount: pages.length,
           pages,
         },

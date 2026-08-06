@@ -4,12 +4,27 @@ import { v4 as uuid } from 'uuid'
 import { db } from '../db.js'
 import { requireAuth, signToken, getUser } from '../auth.js'
 import { scheduleDatabasePush } from '../githubSync.js'
+import { rateLimit } from '../rateLimit.js'
 
 export const authRouter = Router()
 
 const INVITE_CODE = 'cbwnb'
 
-authRouter.post('/register', (req, res) => {
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  key: 'auth-login',
+  message: '登录尝试过多，请 15 分钟后再试',
+})
+
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  key: 'auth-register',
+  message: '注册过于频繁，请稍后再试',
+})
+
+authRouter.post('/register', registerLimiter, (req, res) => {
   const username = String(req.body?.username || '').trim()
   const password = String(req.body?.password || '')
   const inviteCode = String(req.body?.inviteCode || '').trim()
@@ -46,7 +61,7 @@ authRouter.post('/register', (req, res) => {
   res.json({ token: signToken(user), user })
 })
 
-authRouter.post('/login', (req, res) => {
+authRouter.post('/login', loginLimiter, (req, res) => {
   const username = String(req.body?.username || '').trim()
   const password = String(req.body?.password || '')
 

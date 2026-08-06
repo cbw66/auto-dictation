@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { db } from '../db.js'
 import { requireAuth, getUser } from '../auth.js'
 import { scheduleDatabasePush } from '../githubSync.js'
+import { decodeUploadFilename } from '../filename.js'
 
 export const wrongWordsRouter = Router()
 wrongWordsRouter.use(requireAuth)
@@ -17,9 +18,24 @@ wrongWordsRouter.get('/', (req, res) => {
        WHERE w.user_id = ?
        ORDER BY w.last_wrong_at DESC`,
     )
-    .all(user.id)
+    .all(user.id) as Array<{
+    id: string
+    word: string
+    expected: string
+    written: string | null
+    times: number
+    last_wrong_at: string
+    page_index: number | null
+    document_title: string | null
+    document_id: string | null
+  }>
 
-  res.json({ wrongWords: rows })
+  res.json({
+    wrongWords: rows.map((w) => ({
+      ...w,
+      document_title: w.document_title ? decodeUploadFilename(w.document_title) : w.document_title,
+    })),
+  })
 })
 
 wrongWordsRouter.delete('/:id', (req, res) => {

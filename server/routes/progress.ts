@@ -3,6 +3,7 @@ import { v4 as uuid } from 'uuid'
 import { db } from '../db.js'
 import { requireAuth, getUser } from '../auth.js'
 import { scheduleDatabasePush } from '../githubSync.js'
+import { decodeUploadFilename } from '../filename.js'
 
 export const progressRouter = Router()
 progressRouter.use(requireAuth)
@@ -22,9 +23,25 @@ progressRouter.get('/summary', (req, res) => {
        GROUP BY d.id
        ORDER BY d.created_at DESC`,
     )
-    .all(user.id)
+    .all(user.id) as Array<{
+    id: string
+    title: string
+    original_name: string
+    page_count: number
+    created_at: string
+    completed_pages: number
+    in_progress_pages: number
+    wrong_total: number
+    correct_total: number
+  }>
 
-  res.json({ documents })
+  res.json({
+    documents: documents.map((d) => ({
+      ...d,
+      title: decodeUploadFilename(d.title),
+      original_name: decodeUploadFilename(d.original_name),
+    })),
+  })
 })
 
 progressRouter.post('/grade', (req, res) => {

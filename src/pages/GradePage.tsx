@@ -78,7 +78,8 @@ export function GradePage() {
       </p>
       <h1>拍照批改</h1>
       <p className="muted">
-        上传听写纸照片，系统用 OCR 识别后与标准答案比对，错词会自动记入个人主页。
+        上传听写纸照片。系统会先增强对比度再 OCR，并按顺序与标准答案比对；错词会记入个人主页。
+        建议拍照时纸张平整、光线均匀、尽量正对页面。
       </p>
 
       <div className="upload-row">

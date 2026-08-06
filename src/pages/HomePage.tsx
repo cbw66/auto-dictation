@@ -120,13 +120,13 @@ export function HomePage() {
         <h2>操作说明</h2>
         <ul className="tips">
           <li>
-            <kbd>→</kbd> / 小键盘右键：下一个词
+            <kbd>Ctrl</kbd> + <kbd>→</kbd>：下一个词
           </li>
           <li>
-            <kbd>←</kbd> / 小键盘左键：上一个词
+            <kbd>Ctrl</kbd> + <kbd>←</kbd>：上一个词
           </li>
           <li>
-            <kbd>Space</kbd>：再读一遍
+            <kbd>Ctrl</kbd> + <kbd>↑</kbd>：再读一遍
           </li>
           <li>听写结束后拍照上传，自动 OCR 批改并记录错词</li>
         </ul>

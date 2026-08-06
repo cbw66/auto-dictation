@@ -8,6 +8,7 @@ import { DocumentPage } from './pages/DocumentPage'
 import { DictationPage } from './pages/DictationPage'
 import { GradePage } from './pages/GradePage'
 import { ProfilePage } from './pages/ProfilePage'
+import { AdminPage } from './pages/AdminPage'
 
 function Protected() {
   const { user, loading } = useAuth()
@@ -39,6 +40,7 @@ export default function App() {
           <Route path="/docs/:id/page/:pageIndex/grade" element={<GradePage />} />
         </Route>
       </Route>
+      <Route path="/admin" element={<AdminPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
