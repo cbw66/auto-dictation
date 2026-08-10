@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '../lib/api'
-import { preloadVoices, speakWord, stopSpeaking } from '../lib/speech'
+import { prefetchWordAudio, preloadVoices, speakWord, stopSpeaking } from '../lib/speech'
 import {
   loadSpeechSettings,
   saveSpeechSettings,
@@ -63,6 +63,7 @@ export function DictationPage() {
         setTitle(res.document.title)
         setWords(page)
         wordsRef.current = page
+        prefetchWordAudio(page, loadSpeechSettings().accent)
         const saved = localStorage.getItem(draftKey)
         if (saved) {
           try {
@@ -363,17 +364,20 @@ td {
             ，在答题纸里直接输入。
           </p>
 
+          <p className="muted speech-engine-note">
+            发音优先使用词典真人音频（美音/英音），找不到时再回退系统语音。
+          </p>
+
           <div className="speech-settings">
             <label>
-              口音
+              口音（词典）
               <select
                 value={settings.accent}
-                onChange={(e) =>
-                  setSettings((s) => ({
-                    ...s,
-                    accent: e.target.value === 'en-GB' ? 'en-GB' : 'en-US',
-                  }))
-                }
+                onChange={(e) => {
+                  const accent = e.target.value === 'en-GB' ? 'en-GB' : 'en-US'
+                  setSettings((s) => ({ ...s, accent }))
+                  prefetchWordAudio(wordsRef.current, accent)
+                }}
               >
                 <option value="en-US">美式 English (US)</option>
                 <option value="en-GB">英式 English (UK)</option>
