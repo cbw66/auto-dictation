@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import { prefetchWordAudio, preloadVoices, speakWord, stopSpeaking } from '../lib/speech'
+import { fetchMeanings, lookupMeaning } from '../lib/wordMeaning'
 import {
   loadSpeechSettings,
   saveSpeechSettings,
@@ -31,6 +32,7 @@ export function DictationPage() {
     accuracy: number
   } | null>(null)
   const [grading, setGrading] = useState(false)
+  const [meanings, setMeanings] = useState<Record<string, string>>({})
   const [settings, setSettings] = useState<SpeechSettings>(() => loadSpeechSettings())
   const indexRef = useRef(0)
   const wordsRef = useRef<string[]>([])
@@ -90,6 +92,11 @@ export function DictationPage() {
     if (!started || !answers.length) return
     localStorage.setItem(draftKey, JSON.stringify(answers))
   }, [answers, draftKey, started])
+
+  useEffect(() => {
+    if (!results?.length) return
+    void fetchMeanings(results.map((item) => item.expected)).then(setMeanings)
+  }, [results])
 
   useEffect(() => {
     return () => {
@@ -536,7 +543,13 @@ td {
                 />
                 {results && (
                   <strong className={results[answerIndex].correct ? 'answer-ok' : 'answer-bad'}>
-                    {results[answerIndex].correct ? '✓' : `✗ ${results[answerIndex].expected}`}
+                    {results[answerIndex].correct
+                      ? '✓'
+                      : `✗ ${results[answerIndex].expected}${
+                          lookupMeaning(meanings, results[answerIndex].expected)
+                            ? `（${lookupMeaning(meanings, results[answerIndex].expected)}）`
+                            : ''
+                        }`}
                   </strong>
                 )}
               </label>

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import { gradeWords, ocrImage } from '../lib/grade'
+import { fetchMeanings, lookupMeaning } from '../lib/wordMeaning'
 
 type Result = { expected: string; written: string; correct: boolean }
 
@@ -13,6 +14,7 @@ export function GradePage() {
   const [busy, setBusy] = useState(false)
   const [preview, setPreview] = useState<string | null>(null)
   const [results, setResults] = useState<Result[] | null>(null)
+  const [meanings, setMeanings] = useState<Record<string, string>>({})
   const [summary, setSummary] = useState<{
     correctCount: number
     wrongCount: number
@@ -32,6 +34,12 @@ export function GradePage() {
       })
       .catch((e) => setError(e.message))
   }, [id, pageIdx])
+
+  useEffect(() => {
+    if (!results?.length) return
+    const expectedWords = results.map((item) => item.expected)
+    void fetchMeanings(expectedWords).then(setMeanings)
+  }, [results])
 
   async function handleFile(file: File | undefined) {
     if (!file || !id) return
@@ -150,6 +158,7 @@ export function GradePage() {
               <span className="idx">{i + 1}</span>
               <span>
                 标准：<strong>{r.expected}</strong>
+                {lookupMeaning(meanings, r.expected) ? `（${lookupMeaning(meanings, r.expected)}）` : ''}
               </span>
               <span>识别：{r.written || '（空）'}</span>
               <span>{r.correct ? '✓' : '✗'}</span>
